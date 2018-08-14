@@ -141,43 +141,43 @@ head    %1
         dq      dovar
 %endmacro
 
-primitive done
+primitive done  ; terminates the colon defined word
         mov     rsi, [rbp]      ; pop the instruction pointer from the return stack
         add     rbp, 8
         jmp     next
 
-primitive imm
+primitive imm   ; ( -- x )
         push    rbx
         mov     rbx, [rsi]
         add     rsi, 8
         jmp     next
 
-primitive add,'+'
+primitive add,'+'       ; ( a b -- a+b )
         pop     rax
         add     rbx, rax
         jmp     next
 
-primitive sub,'-'
+primitive sub,'-'       ; ( a b -- a-b )
         pop     rax
         sub     rax, rbx
         mov     rbx, rax
         jmp     next
 
-primitive dup
+primitive dup   ; ( a -- a a )
         push    rbx
         jmp     next
 
-primitive swap
+primitive swap  ; ( a b -- b a )
         pop     rax
         push    rbx
         mov     rbx, rax
         jmp     next
 
-primitive drop
+primitive drop ; ( a -- )
         pop     rbx
         jmp     next
 
-primitive roll
+primitive roll ; ( a b c -- b c a )
         pop     rax
         pop     rcx
         push    rax
@@ -185,11 +185,11 @@ primitive roll
         mov     rbx, rcx
         jmp     next
 
-primitive load,'@'
+primitive load,'@'      ; ( a -- [a] )
         mov     rbx, [rbx]
         jmp     next
 
-primitive store,'!'
+primitive store,'!'     ; ( a x -- ) stores x at a
         pop     rax
         mov     [rax], rbx
         pop     rbx
@@ -200,10 +200,37 @@ primitive exit
         mov     rdi, rbx        ; exit code rbx
         syscall
 
+primitive read
+        mov     r8, rsi         ; save rsi
+        mov     rax, 0          ; read
+        mov     rdx, rbx        ; count is top of stack
+        pop     rsi             ; buf is next
+        pop     rdi             ; then fd
+        syscall
+        mov     rbx, rax        ; put return value on top of stack
+        mov     rsi, r8         ; restore rsi
+        jmp     next
+
+primitive write
+        mov     r8, rsi         ; save rsi
+        mov     rax, 1          ; write
+        mov     rdx, rbx        ; count is top of stack
+        pop     rsi             ; buf is next
+        pop     rdi             ; then fd
+        syscall
+        mov     rbx, rax        ; put return value on top of stack
+        mov     rsi, r8         ; restore rsi
+        jmp     next
+
 colon main
-        dq      x_imm,3
-        dq      x_imm,-3
-        dq      x_add
+; 1 buf_in 0 buf_in 4096 read write exit
+        dq      x_imm,1
+        dq      x_buf_in
+        dq      x_imm,0
+        dq      x_buf_in
+        dq      x_imm,4096
+        dq      x_read
+        dq      x_write
         dq      x_exit
 
 section .data

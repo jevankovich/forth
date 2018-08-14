@@ -34,16 +34,16 @@ docolon:
         mov     rsi, [rax]
         jmp     [rsi]
 
-;doconst:
-;        push    rbx             ; push down the top-of-stack
-;        mov     rbx, [rax + 8]
-;        jmp     next
-;
-;dovar:
-;        push    rbx             ; push down the top-of-stack
-;        mov     rbx, rax
-;        add     rbx, 8
-;        jmp     next
+doconst:
+        push    rbx             ; push down the top-of-stack
+        mov     rbx, [rax + 8]
+        jmp     next
+
+dovar:
+        push    rbx             ; push down the top-of-stack
+        mov     rbx, rax
+        add     rbx, 8
+        jmp     next
 
 ;; Reads a single byte from standard in.
 ;; The read byte is returned as a 16 bit number in ax.
@@ -104,63 +104,86 @@ docolon:
 ;       dq      <jump target to execute, e.g. docolon>
 ;       <dependent on the executer>
 
-; done
-        align   8
-e_done: dq      0
-        db      4,'done'
-x_done: dq      $+8
+%define link    0
+
+%macro head 1
+        align 8
+%%link: dq      link
+%define link    %%link
+
+%defstr %%name  %1
+%strlen %%namelen %%name
+        db      %%namelen, %%name
+x_ %+ %1:
+%endmacro
+
+%macro  primitive 1
+head    %1
+        dq      $+8
+%endmacro
+
+%macro  colon 1
+head    %1
+        dq      docolon
+%endmacro
+
+%macro  constant 1
+head    %1
+        dq      doconst
+%endmacro
+
+%macro  variable 1
+head    %1
+        dq      dovar
+%endmacro
+
+primitive done
         mov     rsi, [rbp]      ; pop the instruction pointer from the return stack
         add     rbp, 8
         jmp     next
 
-; immediate
-        align   8
-e_imm:  dq      e_done
-        db      3,'imm'
-x_imm:  dq      $+8
+primitive imm
         push    rbx
         mov     rbx, [rsi]
         add     rsi, 8
         jmp     next
 
-; add
-        align   8
-e_add   dq      e_imm
-        db      1,'+'
-x_add:  dq      $+8
+primitive add
         pop     rax
         add     rbx, rax
         jmp     next
 
-; exit
-        align   8
-e_exit: dq      e_add
-        db      4,'exit'
-x_exit: dq      $+8
+primitive exit
         mov     rax, 60         ; exit
         mov     rdi, rbx        ; exit code rbx
         syscall
 
-; main
-        align   8
-e_main: dq      e_exit
-        db      4,'main'
-x_main: dq      docolon
+colon main
         dq      x_imm,3
         dq      x_imm,-3
         dq      x_add
         dq      x_exit
 
+section .data
+
+constant buf_in
+        dq      buf_in
+
+variable buf_in_len
+        dq      0
+
+variable buf_in_ind
+        dq      0
+
+constant buf_out
+        dq      buf_out
+
+variable buf_out_len
+        dq      0
+
 section .bss
         resq    1024
 r_stack:
 
-buf_in_len:
-        resq    1
-buf_in_ind:
-        resq    1
 buf_in: resb    4096
-
-buf_out_len:
-        resq    1
 buf_out:resb    4096

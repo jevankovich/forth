@@ -112,7 +112,7 @@ head    %1, %%name
 %endmacro
 
 %macro head 2
-        align 8
+        align   8
 %%link: dq      link
 %define link    %%link
 
@@ -152,13 +152,47 @@ primitive imm
         add     rsi, 8
         jmp     next
 
-primitive add
+primitive add,'+'
         pop     rax
         add     rbx, rax
         jmp     next
 
-primitive at,'@'
+primitive sub,'-'
+        pop     rax
+        sub     rax, rbx
+        mov     rbx, rax
+        jmp     next
+
+primitive dup
+        push    rbx
+        jmp     next
+
+primitive swap
+        pop     rax
+        push    rbx
+        mov     rbx, rax
+        jmp     next
+
+primitive drop
+        pop     rbx
+        jmp     next
+
+primitive roll
+        pop     rax
+        pop     rcx
+        push    rax
+        push    rbx
+        mov     rbx, rcx
+        jmp     next
+
+primitive load,'@'
         mov     rbx, [rbx]
+        jmp     next
+
+primitive store,'!'
+        pop     rax
+        mov     [rax], rbx
+        pop     rbx
         jmp     next
 
 primitive exit

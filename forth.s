@@ -107,32 +107,36 @@ dovar:
 %define link    0
 
 %macro head 1
+%defstr %%name  %1
+head    %1, %%name
+%endmacro
+
+%macro head 2
         align 8
 %%link: dq      link
 %define link    %%link
 
-%defstr %%name  %1
-%strlen %%namelen %%name
-        db      %%namelen, %%name
+%strlen %%namelen %2
+        db      %%namelen, %2
 x_ %+ %1:
 %endmacro
 
-%macro  primitive 1
+%macro  primitive 1+
 head    %1
         dq      $+8
 %endmacro
 
-%macro  colon 1
+%macro  colon 1+
 head    %1
         dq      docolon
 %endmacro
 
-%macro  constant 1
+%macro  constant 1+
 head    %1
         dq      doconst
 %endmacro
 
-%macro  variable 1
+%macro  variable 1+
 head    %1
         dq      dovar
 %endmacro
@@ -151,6 +155,10 @@ primitive imm
 primitive add
         pop     rax
         add     rbx, rax
+        jmp     next
+
+primitive at,'@'
+        mov     rbx, [rbx]
         jmp     next
 
 primitive exit
@@ -180,6 +188,9 @@ constant buf_out
 
 variable buf_out_len
         dq      0
+
+variable dict
+        dq      link
 
 section .bss
         resq    1024
